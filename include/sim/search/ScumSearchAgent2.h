@@ -12,11 +12,13 @@
 #include <memory>
 #include <random>
 
+namespace sts::report { class RunRecorder; }
 namespace sts::search {
 
     class BattleScumSearcher2;
 
     struct ScumSearchAgent2 {
+        report::RunRecorder* recorder = nullptr;
         std::int64_t simulationCountTotal;
         std::vector<int> gameActionHistory;
 

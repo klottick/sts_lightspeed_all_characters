@@ -9,9 +9,11 @@
 #include "sim/search/Action.h"
 #include "sim/search/GameAction.h"
 
+namespace sts::report { class RunRecorder; }
 namespace sts::search {
 
     struct SimpleAgent {
+        report::RunRecorder* recorder = nullptr;
 
         std::vector<int> actionHistory;
         GameContext *curGameContext; // unsafe only use in private methods during playout

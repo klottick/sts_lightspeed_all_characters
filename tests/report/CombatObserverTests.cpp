@@ -110,3 +110,11 @@ REPORT_TEST(effects_foreign_copy_and_selection) {
     CHECK(observerFor(&f.bc) == nullptr);
     f.bc.player.heal(1); CHECK(observer.takeEffects().empty());
 }
+
+REPORT_TEST(effects_non_attack_target_not_invented) {
+    auto f = report_test::twoLouses(); IdentityRegistry ids; ids.beginCombat();
+    CombatObserver observer(f.bc, ids); ScopedCombatObserver scope(observer);
+    observer.beginEnemyMove(0, {{"name", "Grow"}, {"kind", "non_attack"}});
+    const auto moves = only(observer.takeEffects(), "enemy_move");
+    CHECK(moves.size() == 1); CHECK(moves[0]["target"].is_null());
+}

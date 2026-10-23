@@ -47,7 +47,7 @@ void CombatObserver::beginEnemyMove(int slot, const Json& move) {
     endEnemyMove();
     moveSource_ = identities_.enemyRef(slot);
     const auto resolved = move.empty() ? enemySnapshot(battle_, slot, identities_)["intent"] : move;
-    recordMutation({{"kind", "enemy_move"}, {"source", moveSource_}, {"target", "player"}, {"resolvedMove", resolved},
+    recordMutation({{"kind", "enemy_move"}, {"source", moveSource_}, {"target", nullptr}, {"resolvedMove", resolved},
                     {"description", resolved.value("name", "Enemy move") + " resolved"}});
 }
 void CombatObserver::endEnemyMove() { checkpoint(); moveSource_.clear(); }

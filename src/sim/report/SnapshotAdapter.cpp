@@ -146,6 +146,7 @@ Json SnapshotAdapter::battle(const Json& runSnapshot, const BattleContext& bc) {
         }
     }
     state["combat"] = {{"id", identities_.combatId()}, {"turn", bc.turn}, {"inputState", bc.inputState == InputState::CARD_SELECT ? "CARD_SELECT" : bc.inputState == InputState::PLAYER_NORMAL ? "PLAYER_NORMAL" : "EXECUTING_ACTIONS"},
+                       {"outcome", bc.outcome == Outcome::PLAYER_VICTORY ? "victory" : bc.outcome == Outcome::PLAYER_LOSS ? "loss" : "undecided"},
                        {"enemies", enemies}, {"hand", hand}, {"piles", {{"draw", draw}, {"discard", discard}, {"exhaust", exhaust}}},
                        {"selection", selection}, {"stance", state["player"]["stance"]}, {"orbSlots", bc.player.orbSlots}, {"orbs", nullptr}};
     return state;

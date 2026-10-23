@@ -7,6 +7,15 @@
 #include <vector>
 
 namespace report_test {
+extern thread_local bool countAllocations;
+extern thread_local std::size_t allocationBlocks;
+template<class F> std::size_t allocations(F fn) {
+    const bool previous = countAllocations;
+    allocationBlocks = 0; countAllocations = true;
+    try { fn(); } catch (...) { countAllocations = previous; throw; }
+    countAllocations = previous;
+    return allocationBlocks;
+}
 struct Case { std::string name; std::function<void()> run; };
 inline std::vector<Case>& cases() { static std::vector<Case> all; return all; }
 struct Register {
