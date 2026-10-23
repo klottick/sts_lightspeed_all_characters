@@ -118,13 +118,24 @@ Json enemySnapshot(const BattleContext& bc, int slot, IdentityRegistry& identiti
     return {{"ref", identities.enemyRef(slot)}, {"slot", slot}, {"monsterId", token}, {"name", friendly(token)},
             {"hp", m.curHp}, {"maxHp", m.maxHp}, {"block", m.block}, {"statuses", values}, {"lifeState", life}, {"assetKey", "monster/" + token},
             {"intent", {{"moveId", moveId}, {"name", friendly(moveId)}, {"kind", attacking ? "attack" : "non_attack"},
-                        {"damagePerHit", damage}, {"hitCount", hits}, {"assetKey", attacking ? "intent/attack" : "intent/debuff"}}}};
+                        {"damagePerHit", damage}, {"hitCount", hits}, {"assetKey", attacking ? "intent/attack" : "intent/unknown"}}}};
 }
 
 Json SnapshotAdapter::battle(const Json& runSnapshot, const BattleContext& bc) {
     auto state = runSnapshot;
     state["player"] = playerSnapshot(bc);
     state["inventory"]["potions"] = potions(bc.potions, bc.potionCapacity);
+    for (auto& relic : state["inventory"]["relics"]) {
+        const auto id = relic.value("id", "");
+        if (id == "HAPPY_FLOWER") relic["counter"] = bc.player.happyFlowerCounter;
+        else if (id == "INCENSE_BURNER") relic["counter"] = bc.player.incenseBurnerCounter;
+        else if (id == "INK_BOTTLE") relic["counter"] = bc.player.inkBottleCounter;
+        else if (id == "INSERTER") relic["counter"] = bc.player.inserterCounter;
+        else if (id == "NUNCHAKU") relic["counter"] = bc.player.nunchakuCounter;
+        else if (id == "PEN_NIB") relic["counter"] = bc.player.penNibCounter == -1 ? 9 : bc.player.penNibCounter;
+        else if (id == "SUNDIAL") relic["counter"] = bc.player.sundialCounter;
+        else if (id == "LIZARD_TAIL") relic["counter"] = bc.player.hasRelic<RelicId::LIZARD_TAIL>() ? 1 : 0;
+    }
     state["screen"] = {{"kind", "battle"}, {"name", "Combat"}, {"options", Json::array()}};
     Json enemies = Json::array(), hand = Json::array(), draw = Json::array(), discard = Json::array(), exhaust = Json::array();
     for (int i = 0; i < bc.monsters.monsterCount; ++i) {

@@ -55,3 +55,18 @@ REPORT_TEST(snapshot_no_rng_mutation) {
     CHECK(gcBefore == report_test::rngState(f.gc)); CHECK(bcBefore == report_test::rngState(f.bc));
     CHECK(!adapter.catalogDelta().empty()); CHECK(adapter.catalogDelta().empty());
 }
+
+REPORT_TEST(snapshot_combat_relic_counters_and_unknown_intent) {
+    auto f = report_test::twoLouses();
+    f.gc.obtainRelic(RelicId::INK_BOTTLE); f.gc.relics.getRelicValueRef(RelicId::INK_BOTTLE) = 2;
+    f.bc.player.inkBottleCounter = 7;
+    f.bc.monsters.arr[0].setMove(MMID::RED_LOUSE_GROW);
+    IdentityRegistry ids; ids.beginCombat(); SnapshotAdapter adapter(ids);
+    const auto state = adapter.battle(adapter.game(f.gc), f.bc);
+    bool found = false;
+    for (const auto& relic : state["inventory"]["relics"]) if (relic["id"] == "INK_BOTTLE") {
+        found = true; CHECK(relic["counter"] == 7);
+    }
+    CHECK(found);
+    CHECK(state["combat"]["enemies"][0]["intent"]["assetKey"] != "intent/debuff");
+}

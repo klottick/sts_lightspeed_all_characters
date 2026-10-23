@@ -27,3 +27,5 @@ Every `state.screen` has `kind`, `name`, and `options`. An option has `key`, `la
 - `boss_relics`, `rest`, `treasure`, `card_select`: offered relics; eligible rest choices; chest metadata; or selection type/count/candidate cards and selected cards, respectively.
 
 Game actions include `preActionOffer`, captured before execution, so buying/removing an item cannot erase its name or price from the selected slide. Battle actions include their source card, target references, potion details, or card-selection task and selected identities. No action descriptor executes the action or recomputes a randomized offer.
+
+Game actions also carry nullable `optionKey`, matching exactly one historical option's `key` when known. `frame.beforeScreen` retains the complete pre-action list, even after a purchase or screen transition. Consumers must not match choices using absent IDs, shared indexes across reward types, or approximate description text. Combat relic counters come from the current battle rather than the cached run snapshot.

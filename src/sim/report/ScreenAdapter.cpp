@@ -185,6 +185,9 @@ Json rewardsOptions(const GameContext& gc) {
         if (gc.hasRelic(RelicId::SINGING_BOWL)) {
             auto o = option("reward/singing_bowl/" + std::to_string(i), "Gain 2 max HP instead of a card");
             o["data"] = {{"rewardType", "singing_bowl"}, {"index", i}, {"maxHpGain", 2}}; options.push_back(o);
+        } else {
+            auto o = option("reward/skip_card/" + std::to_string(i), "Skip card reward");
+            o["data"] = {{"rewardType", "skip_card"}, {"index", i}}; options.push_back(o);
         }
     }
     for (int i = 0; i < std::clamp(r.relicCount, 0, 3); ++i) {
@@ -343,6 +346,40 @@ Json actionJson(std::string type, std::uint32_t bits, std::string description) {
     return Json{{"type", std::move(type)}, {"bits", bits}, {"description", std::move(description)},
                 {"source", nullptr}, {"targets", Json::array()}, {"card", nullptr}};
 }
+
+Json selectedOptionKey(const GameContext& gc, const search::GameAction& a) {
+    using R = search::GameAction::RewardsActionType;
+    if (a.isPotionAction()) return nullptr;
+    const auto index = std::to_string(a.getIdx1());
+    switch (gc.screenState) {
+        case ScreenState::MAP_SCREEN: return "map/" + index;
+        case ScreenState::EVENT_SCREEN: return std::string(gc.curEvent == Event::MATCH_AND_KEEP ? "event/card/" : "event/") + index;
+        case ScreenState::REST_ROOM: return "rest/" + index;
+        case ScreenState::CARD_SELECT: return "card_select/" + index;
+        case ScreenState::TREASURE_ROOM: return a.getIdx1() == 0 ? "treasure/open" : "treasure/skip";
+        case ScreenState::BOSS_RELIC_REWARDS: return a.getIdx1() == 3 ? "boss_relic/skip" : "boss_relic/" + index;
+        case ScreenState::SHOP_ROOM:
+            switch (a.getRewardsActionType()) {
+                case R::CARD: return "shop/card/" + index;
+                case R::RELIC: return "shop/relic/" + index;
+                case R::POTION: return "shop/potion/" + index;
+                case R::CARD_REMOVE: return "shop/remove";
+                default: return "shop/leave";
+            }
+        case ScreenState::REWARDS:
+            switch (a.getRewardsActionType()) {
+                case R::CARD:
+                    if (a.getIdx2() == 5) return std::string(gc.hasRelic(RelicId::SINGING_BOWL) ? "reward/singing_bowl/" : "reward/skip_card/") + index;
+                    return "reward/card/" + index + "/" + std::to_string(a.getIdx2());
+                case R::GOLD: return "reward/gold/" + index;
+                case R::RELIC: return "reward/relic/" + index;
+                case R::POTION: return "reward/potion/" + index;
+                case R::KEY: return gc.info.rewardsContainer.sapphireKey ? "reward/key/sapphire" : "reward/key/emerald";
+                default: return gc.info.rewardsContainer.getTotalCount() ? "reward/skip" : "reward/proceed";
+            }
+        default: return nullptr;
+    }
+}
 }
 
 Json screenSnapshot(const GameContext& gc, IdentityRegistry&) {
@@ -446,6 +483,7 @@ Json screenSnapshot(const GameContext& gc, IdentityRegistry&) {
 
 Json describeGameAction(const GameContext& gc, const search::GameAction& action, IdentityRegistry& ids) {
     auto result = actionJson(gameActionType(gc, action), action.bits, gameActionLabel(gc, action));
+    result["optionKey"] = selectedOptionKey(gc, action);
     const Json offer = gameActionOffer(gc, action, ids);
     result["preActionOffer"] = offer;
     if (offer.is_object() && offer.value("kind", std::string()) == "card" && offer.contains("card")) result["card"] = offer["card"];

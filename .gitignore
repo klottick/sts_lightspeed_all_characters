@@ -1,3 +1,8 @@
 /cmake-build-*/
 /files/
 /.idea/
+/tests/report/browser/node_modules/
+/tests/report/browser/test-results/
+/tests/report/browser/playwright-report/
+/tests/report/__pycache__/
+/tools/__pycache__/

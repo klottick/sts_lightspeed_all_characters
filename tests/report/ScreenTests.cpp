@@ -9,6 +9,23 @@
 using namespace sts;
 using namespace sts::report;
 
+REPORT_TEST(screen_selected_option_keys_are_authoritative) {
+    auto f = report_test::twoLouses(); IdentityRegistry ids;
+    f.gc.screenState = ScreenState::EVENT_SCREEN; f.gc.curEvent = Event::NEOW;
+    CHECK(describeGameAction(f.gc, search::GameAction(1), ids)["optionKey"] == "event/1");
+    f.gc.screenState = ScreenState::REST_ROOM;
+    CHECK(describeGameAction(f.gc, search::GameAction(0), ids)["optionKey"] == "rest/0");
+    f.gc.screenState = ScreenState::REWARDS; f.gc.info.rewardsContainer.clear();
+    f.gc.info.rewardsContainer.cardRewardCount = 1;
+    f.gc.info.rewardsContainer.cardRewards[0].push_back(Card(CardId::BASH));
+    const search::GameAction skip(search::GameAction::RewardsActionType::CARD, 0, 5);
+    CHECK(describeGameAction(f.gc, skip, ids)["optionKey"] == "reward/skip_card/0");
+    bool offered = false;
+    const auto screen = screenSnapshot(f.gc, ids);
+    for (const auto& option : screen["options"]) if (option["key"] == "reward/skip_card/0") offered = true;
+    CHECK(offered);
+}
+
 REPORT_TEST(screen_all_kinds) {
     auto f = report_test::twoLouses();
     IdentityRegistry ids; ids.beginCombat();
