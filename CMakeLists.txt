@@ -33,4 +33,21 @@ add_executable(small-test apps/small-test.cpp bindings/bindings-util.cpp ${sts_l
 target_link_directories(small-test PRIVATE json::nlohmann_json)
 target_include_directories(small-test PUBLIC include)
 target_include_directories(small-test PUBLIC json/include)
+
+option(BUILD_TESTING "Build report tests" ON)
+if(BUILD_TESTING)
+    add_library(sts-report-engine STATIC ${sts_lightspeed_SOURCES})
+    target_include_directories(sts-report-engine PUBLIC include)
+    target_link_libraries(sts-report-engine PUBLIC nlohmann_json::nlohmann_json)
+    file(GLOB report_TEST_SOURCES CONFIGURE_DEPENDS "tests/report/*Tests.cpp")
+    add_executable(report-tests tests/report/ReportTestMain.cpp ${report_TEST_SOURCES})
+    target_link_libraries(report-tests PRIVATE sts-report-engine)
+    # The existing CLI executable is named `test`, which enable_testing() reserves.
+    # Generate CTest's registry directly so that executable and build target remain unchanged.
+    set(report_test_registry "")
+    foreach(report_case trace_round_trip trace_partial_and_invalid trace_stream_failure trace_writer_validation)
+        string(APPEND report_test_registry "add_test(report.${report_case} \"$<TARGET_FILE:report-tests>\" --case ${report_case})\n")
+    endforeach()
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/CTestTestfile.cmake" CONTENT "${report_test_registry}")
+endif()
 target_include_directories(small-test PUBLIC bindings)
