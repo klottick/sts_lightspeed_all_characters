@@ -1,6 +1,6 @@
 # Read-only simulation run viewer
 
-Status: visual direction approved; written specification awaiting review.
+Status: written specification approved by the user; implementation planning in progress.
 
 ## Purpose and agreed constraints
 
