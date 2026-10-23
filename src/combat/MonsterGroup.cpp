@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "combat/MonsterGroup.h"
+#include "sim/report/CombatObserver.h"
 #include "combat/BattleContext.h"
 
 
@@ -576,6 +577,9 @@ void MonsterGroup::doMonsterTurn(BattleContext &bc) {
         if (skipTurn[bc.monsterTurnIdx]) {
             skipTurn.set(bc.monsterTurnIdx, false);
         } else {
+            if (auto* observer = report::observerFor(&bc)) {
+                observer->beginEnemyMove(bc.monsterTurnIdx, report::Json::object());
+            }
             m.takeTurn(bc);
         }
     }
@@ -648,4 +652,3 @@ namespace sts {
     }
 
 }
-

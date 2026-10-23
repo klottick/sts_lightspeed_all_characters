@@ -5,8 +5,10 @@
 #include <sim/search/SimpleAgent.h>
 #include <game/Game.h>
 #include "sim/PrintHelpers.h"
+#include "sim/report/RunRecorder.h"
 
 #include <map>
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <thread>
@@ -252,7 +254,8 @@ void search::SimpleAgent::takeAction(GameContext &gc, search::GameAction a) {
     if (print) {
         std::cout << gc << '\n';
     }
-    a.execute(gc);
+    if (recorder) recorder->recordGameAction(gc, a);
+    else a.execute(gc);
 }
 
 void search::SimpleAgent::takeAction(BattleContext &bc, search::Action a) {
@@ -260,10 +263,12 @@ void search::SimpleAgent::takeAction(BattleContext &bc, search::Action a) {
     if (print) {
         printHelper(bc, a);
     }
-    a.execute(bc);
+    if (recorder) recorder->recordBattleAction(bc, a);
+    else a.execute(bc);
 }
 
 void search::SimpleAgent::playout(GameContext &gc) {
+    if (recorder) recorder->startRun(gc);
     curGameContext = &gc;
 
     BattleContext bc;
@@ -273,14 +278,18 @@ void search::SimpleAgent::playout(GameContext &gc) {
         if (gc.screenState == ScreenState::BATTLE) {
             bc = BattleContext();
             bc.init(gc);
+            if (recorder) recorder->enterBattle(gc, bc);
 
             playoutBattle(bc);
+            if (recorder) recorder->finishBattle(bc);
             bc.exitBattle(gc);
+            if (recorder) recorder->leaveBattle(gc);
             continue;
         }
 
         stepOutOfCombat(gc);
     }
+    if (recorder) recorder->finishRun(gc.outcome == GameOutcome::PLAYER_VICTORY ? "victory" : "loss", gc);
 }
 
 // returns whether all potions have been tried

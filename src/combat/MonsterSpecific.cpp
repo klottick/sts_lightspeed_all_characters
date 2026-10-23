@@ -3,6 +3,9 @@
 //
 
 #include "combat/Monster.h"
+#include "sim/report/CombatObserver.h"
+
+#include <algorithm>
 #include "game/Random.h"
 #include "combat/BattleContext.h"
 #include "game/GameContext.h"
@@ -3323,6 +3326,7 @@ MMID Monster::getMoveForRoll(BattleContext &bc, int &monsterData, const int roll
 }
 
 void Monster::initSpawnedMonster(BattleContext &bc, const MonsterId monsterId, const int monsterIdx, const int hp) {
+    if (auto* observer = report::observerFor(&bc)) observer->enemyReplaced(monsterIdx);
     idx = monsterIdx;
     id = monsterId;
     curHp = hp;

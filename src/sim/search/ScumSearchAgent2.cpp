@@ -4,10 +4,13 @@
 
 #include "sim/search/ScumSearchAgent2.h"
 
+#include <algorithm>
+
 #include <sim/search/ExpertKnowledge.h>
 #include <game/Game.h>
 #include "sim/PrintHelpers.h"
 #include "sim/search/BattleScumSearcher2.h"
+#include "sim/report/RunRecorder.h"
 
 using namespace sts;
 
@@ -16,7 +19,8 @@ void search::ScumSearchAgent2::takeAction(GameContext &gc, search::GameAction a)
         gameActionHistory.emplace_back(a.bits);
         std::cout << std::hex << a.bits << std::endl;
     }
-    a.execute(gc);
+    if (recorder) recorder->recordGameAction(gc, a);
+    else a.execute(gc);
 }
 
 void search::ScumSearchAgent2::takeAction(BattleContext &bc, search::Action a) {
@@ -25,10 +29,12 @@ void search::ScumSearchAgent2::takeAction(BattleContext &bc, search::Action a) {
         std::cout << std::hex << a.bits << std::endl;
     }
 //    a.printDesc(std::cout, bc);
-    a.execute(bc);
+    if (recorder) recorder->recordBattleAction(bc, a);
+    else a.execute(bc);
 }
 
 void search::ScumSearchAgent2::playout(GameContext &gc) {
+    if (recorder) recorder->startRun(gc);
     paused = false;
     BattleContext bc;
     const auto seedStr = std::string(SeedHelper::getString(gc.seed));
@@ -37,9 +43,12 @@ void search::ScumSearchAgent2::playout(GameContext &gc) {
         if (gc.screenState == ScreenState::BATTLE) {
             bc = BattleContext();
             bc.init(gc);
+            if (recorder) recorder->enterBattle(gc, bc);
 
             playoutBattle(bc);
+            if (recorder) recorder->finishBattle(bc);
             bc.exitBattle(gc);
+            if (recorder) recorder->leaveBattle(gc);
             continue;
         }
 
@@ -48,6 +57,7 @@ void search::ScumSearchAgent2::playout(GameContext &gc) {
         }
         stepOutOfCombatPolicy(gc);
     }
+    if (recorder) recorder->finishRun(paused ? "paused" : gc.outcome == GameOutcome::PLAYER_VICTORY ? "victory" : "loss", gc);
 }
 
 static void printHelper(const BattleContext &bc, const search::Action &a) {
@@ -408,4 +418,3 @@ void search::ScumSearchAgent2::stepEventPolicy(GameContext &gc) {
             return;
     }
 }
-

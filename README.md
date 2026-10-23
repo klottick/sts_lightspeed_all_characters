@@ -27,6 +27,9 @@ For tree search and simulation of the popular rogue-like deckbuilder game Slay T
 * The test target creates a program with various commands that can be run, including random simulation
 * Click the star button at the top of the repo :)
 
+**Offline run reports**
+* Build `sts-report` to export a standalone, read-only HTML simulation timeline; see [docs/run-viewer.md](docs/run-viewer.md) for build, optional artwork, and verification instructions.
+
 **Build tips**
 * If your build fails with an error about not-return-only `constexpr` methods, ensure your compiler supports c++17.
 * If CLion shows an error about not finding python libs when loading the cmake project, try opening CLion from the msys2 shell.
