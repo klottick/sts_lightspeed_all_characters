@@ -7,6 +7,7 @@
 #include "sim/PrintHelpers.h"
 
 #include <map>
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <thread>

@@ -3,6 +3,8 @@
 //
 
 #include "combat/CardManager.h"
+
+#include <algorithm>
 #include "combat/BattleContext.h"
 
 #include "game/GameContext.h"

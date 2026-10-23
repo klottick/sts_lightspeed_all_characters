@@ -4,6 +4,8 @@
 
 #include "sim/search/ScumSearchAgent2.h"
 
+#include <algorithm>
+
 #include <sim/search/ExpertKnowledge.h>
 #include <game/Game.h>
 #include "sim/PrintHelpers.h"
@@ -408,4 +410,3 @@ void search::ScumSearchAgent2::stepEventPolicy(GameContext &gc) {
             return;
     }
 }
-
