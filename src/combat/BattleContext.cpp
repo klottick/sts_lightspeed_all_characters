@@ -5,6 +5,7 @@
 #include "combat/BattleContext.h"
 #include "game/GameContext.h"
 #include "game/Game.h"
+#include "sim/report/CombatObserver.h"
 
 #include <algorithm>
 
@@ -751,6 +752,7 @@ void BattleContext::executeActions() {
             // do a action
             auto a = std::move(actionQueue.popFront());
             a(*this);
+            if (auto* observer = report::observerFor(this)) observer->checkpoint();
             continue;
         }
 
@@ -785,6 +787,7 @@ void BattleContext::executeActions() {
 
         if (monsterTurnIdx < monsters.monsterCount) {
             // do a monster turn
+            if (auto* observer = report::observerFor(this)) observer->endEnemyMove();
             monsters.doMonsterTurn(*this);
             continue;
         }
@@ -796,6 +799,7 @@ void BattleContext::executeActions() {
 
         if (turnHasEnded) {
             // after all monster turns
+            if (auto* observer = report::observerFor(this)) observer->endEnemyMove();
             afterMonsterTurns();
             continue;
 
@@ -824,6 +828,7 @@ void BattleContext::executeActions() {
         setState(InputState::PLAYER_NORMAL);
         break;
     }
+    if (auto* observer = report::observerFor(this)) observer->endEnemyMove();
 }
 
 void BattleContext::playCardQueueItem(CardQueueItem playItem) {

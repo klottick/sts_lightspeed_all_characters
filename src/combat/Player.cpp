@@ -8,6 +8,7 @@
 #include <combat/BattleContext.h>
 #include <combat/Actions.h>
 #include "combat/Player.h"
+#include "sim/report/CombatObserver.h"
 
 using namespace sts;
 
@@ -164,7 +165,9 @@ void Player::heal(int amount) {
 
     bool wasBloodied = curHp <= maxHp/2;
 
+    const auto reportHpBefore = curHp;
     curHp = std::min(static_cast<int>(maxHp), curHp + amount);
+    if (auto* observer = report::observerFor(this)) observer->healed("player", reportHpBefore, curHp);
 
     if (wasBloodied && curHp > maxHp/2 && hasRelic<RelicId::RED_SKULL>()) {
         debuff<PS::STRENGTH>(3);
@@ -172,6 +175,8 @@ void Player::heal(int amount) {
 }
 
 void Player::damage(BattleContext &bc, const int calculatedDamage, const bool selfDamage) {
+    auto* reportObserver = report::observerFor(&bc);
+    report::DamageScope reportDamage(reportObserver, calculatedDamage);
 #ifdef sts_asserts
     assert(calculatedDamage >= 0);
 #endif
@@ -185,6 +190,7 @@ void Player::damage(BattleContext &bc, const int calculatedDamage, const bool se
     const auto savedBlock = block;
     block = std::max(0, block-damage);
     damage -= savedBlock;
+    reportDamage.absorbed(savedBlock - block);
 
 
 
@@ -204,10 +210,15 @@ void Player::damage(BattleContext &bc, const int calculatedDamage, const bool se
 
     if (damage > 0) {
         hpWasLost(bc, damage, selfDamage);
+    } else if (reportObserver) {
+        reportObserver->blockedHit("player");
     }
 }
 
 void Player::attacked(BattleContext &bc, int enemyIdx, int calculatedDamage) {
+    auto* reportObserver = report::observerFor(&bc);
+    report::DamageScope reportDamage(reportObserver, calculatedDamage);
+    if (reportObserver) reportDamage.source(reportObserver->enemyRef(enemyIdx));
     assert(calculatedDamage >= 0);
 
     // assume intangible is already handled
@@ -216,6 +227,7 @@ void Player::attacked(BattleContext &bc, int enemyIdx, int calculatedDamage) {
     const auto savedBlock = block;
     block = std::max(0, block-damage);
     damage -= savedBlock;
+    reportDamage.absorbed(savedBlock - block);
 
     // buffer triggers before tungsten rod in the game's implementation
     // cases where tungsten rod would prevent damage // todo check if this is true
@@ -255,6 +267,7 @@ void Player::attacked(BattleContext &bc, int enemyIdx, int calculatedDamage) {
 
     } else {
         lastAttackUnblockedDamage = 0;
+        if (reportObserver) reportObserver->blockedHit("player");
     }
 }
 
@@ -278,7 +291,9 @@ void Player::hpWasLost(BattleContext &bc, int amount, bool selfDamage) {
 
     bool wasBloodied = curHp <= maxHp/2;
 
+    const auto reportHpBefore = curHp;
     curHp = std::max(0, curHp-amount);
+    if (auto* observer = report::observerFor(&bc)) observer->hpLost("player", reportHpBefore, curHp, amount);
 
     if (selfDamage && hasStatus<PS::RUPTURE>()) {
         buff<PS::STRENGTH>(getStatus<PS::RUPTURE>());
@@ -884,7 +899,6 @@ namespace sts {
 
 
 }
-
 
 
 

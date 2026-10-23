@@ -3,6 +3,7 @@
 //
 
 #include "combat/Monster.h"
+#include "sim/report/CombatObserver.h"
 
 #include "game/Random.h"
 #include "combat/BattleContext.h"
@@ -107,6 +108,7 @@ void Monster::applyEndOfRoundPowers(BattleContext &bc) {
 }
 
 void Monster::construct(BattleContext &bc, MonsterId monsterId, int monsterIdx) {
+    if (auto* observer = report::observerFor(&bc)) observer->enemyReplaced(monsterIdx);
     this->id = monsterId;
     this->idx = monsterIdx;
     initHp(bc.monsterHpRng, bc.ascension);
@@ -273,7 +275,9 @@ void Monster::heal(int amount) {
     }
 #endif
 
+    const auto reportHpBefore = curHp;
     curHp = std::min(maxHp, curHp + amount);
+    if (auto* observer = report::observerFor(this)) observer->healed(observer->enemyRef(idx), reportHpBefore, curHp);
 }
 
 void Monster::addBlock(int amount) {
@@ -395,7 +399,9 @@ void Monster::attackedUnblockedHelper(BattleContext &bc, int damage) { // todo, 
         buff<MS::SHACKLED>(damage);
     }
 
+    const auto reportHpBefore = curHp;
     curHp -= damage;
+    if (auto* observer = report::observerFor(&bc)) observer->hpLost(observer->enemyRef(idx), reportHpBefore, std::max(0, curHp), damage);
     if (curHp <= 0) {
         curHp = 0;
         die(bc);
@@ -405,6 +411,9 @@ void Monster::attackedUnblockedHelper(BattleContext &bc, int damage) { // todo, 
 }
 
 void Monster::attacked(BattleContext &bc, int damage) {
+    auto* reportObserver = report::observerFor(&bc);
+    report::DamageScope reportDamage(reportObserver, damage);
+    reportDamage.source("player");
     if (isDeadOrEscaped()) { // these probably shouldn't happen
         std::cerr << bc.seed << " was dead when attacked" << idx << "\n" << bc;
         assert(false);
@@ -429,6 +438,7 @@ void Monster::attacked(BattleContext &bc, int damage) {
     const int tempDamage = damage;
     damage -= block;
     block = std::max(0, block - tempDamage);
+    reportDamage.absorbed(tempDamage - std::max(0, damage));
 
     if (hadBlock && block == 0 && bc.player.hasRelic<RelicId::HAND_DRILL>()) {
         bc.addToBot(Actions::DebuffEnemy<MS::VULNERABLE>(idx, 2, false) );
@@ -436,6 +446,8 @@ void Monster::attacked(BattleContext &bc, int damage) {
 
     if (damage > 0) { // todo can damage be zero???
         attackedUnblockedHelper(bc, damage);
+    } else if (reportObserver) {
+        reportObserver->blockedHit(reportObserver->enemyRef(idx));
     }
 }
 
@@ -455,7 +467,9 @@ void Monster::damageUnblockedHelper(BattleContext &bc, int damage) {
         buff<MS::SHACKLED>(damage);
     }
 
+    const auto reportHpBefore = curHp;
     curHp = std::max(0, curHp-damage);
+    if (auto* observer = report::observerFor(&bc)) observer->hpLost(observer->enemyRef(idx), reportHpBefore, curHp, damage);
     if (curHp == 0) {
         die(bc);
     } else {
@@ -464,6 +478,8 @@ void Monster::damageUnblockedHelper(BattleContext &bc, int damage) {
 }
 
 void Monster::damage(BattleContext &bc, int damage) {
+    auto* reportObserver = report::observerFor(&bc);
+    report::DamageScope reportDamage(reportObserver, damage);
     if (isDeadOrEscaped()) { // these probably shouldn't happen
         std::cerr << bc.seed << " was dead when damaged" << idx << "\n" << bc;
         assert(false);
@@ -484,6 +500,7 @@ void Monster::damage(BattleContext &bc, int damage) {
     const int tempDamage = damage;
     damage -= block;
     block = std::max(0, block-tempDamage);
+    reportDamage.absorbed(tempDamage - std::max(0, damage));
 
     if (hadBlock && block == 0 && bc.player.hasRelic<RelicId::HAND_DRILL>()) {
         bc.addToBot(Actions::DebuffEnemy<MS::VULNERABLE>(idx, 2, false) );
@@ -492,6 +509,7 @@ void Monster::damage(BattleContext &bc, int damage) {
     if (damage > 0) {
         damageUnblockedHelper(bc, damage);
     } else {
+        if (reportObserver) reportObserver->blockedHit(reportObserver->enemyRef(idx));
         return;
     }
 }
