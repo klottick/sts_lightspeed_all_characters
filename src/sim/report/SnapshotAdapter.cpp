@@ -1,4 +1,5 @@
 #include "sim/report/SnapshotAdapter.h"
+#include "sim/report/ScreenAdapter.h"
 #include "game/GameContext.h"
 #include "combat/BattleContext.h"
 #include <algorithm>
@@ -80,12 +81,13 @@ Json SnapshotAdapter::game(const GameContext& gc) {
         relics.push_back({{"id", token}, {"name", name}, {"counter", value.data}, {"assetKey", asset}});
     }
     const auto character = named(characterClassEnumNames, static_cast<int>(gc.cc));
-    return {{"screen", {{"kind", "unknown"}, {"name", "Screen " + std::to_string(static_cast<int>(gc.screenState))}, {"options", Json::array()}}},
+    const auto screen = screenSnapshot(gc, identities_);
+    return {{"screen", screen},
             {"act", gc.act}, {"floor", gc.floorNum}, {"ascension", gc.ascension}, {"character", character},
             {"characterAssetKey", "character/" + character},
             {"player", {{"hp", gc.curHp}, {"maxHp", gc.maxHp}, {"gold", gc.gold}, {"block", nullptr}, {"energy", nullptr}, {"statuses", Json::array()}}},
             {"inventory", {{"deck", deck}, {"relics", relics}, {"potions", potions(gc.potions, gc.potionCapacity)}}},
-            {"map", nullptr}, {"combat", nullptr}};
+            {"map", screen.value("map", Json(nullptr))}, {"combat", nullptr}};
 }
 
 Json playerSnapshot(const BattleContext& bc) {

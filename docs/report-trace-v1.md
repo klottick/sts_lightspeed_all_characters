@@ -15,3 +15,15 @@ Snapshots contain `screen`, authoritative `player`, `inventory`, `map`, and null
 Each effect has an ordered sequence, kind, description, nullable known source/target, and before/after values. Damage distinguishes incoming attack value, Block absorbed, actual HP lost and known overkill. Healing is separate. Source attribution is never inferred from a net state delta.
 
 `readTrace` produces `{schemaVersion, run, catalog, frames, status, warnings}`. The HTML exporter adds an embedded asset catalog. Browser viewing never executes the simulator or requires the intermediate file.
+
+## Screen and action payloads
+
+Every `state.screen` has `kind`, `name`, and `options`. An option has `key`, `label`, `available`, and a `data` object. Only fields initialized for the active screen/event are inspected.
+
+- `map`: `map.current` and `map.nodes` (`x`, `y`, room, outgoing x-coordinates); next-node options retain coordinates/room. The same graph is available as `state.map`.
+- `event`: event ID/name and historical options, with Neow bonus/drawback, known offered card/relic identities, or explicit unknown-event fallback data. Phase metadata is included only for events that initialize it.
+- `shop`: stock options have item kind/index/card or relic/potion identity and current price; removal/leave are explicit. Option availability reflects current gold.
+- `rewards`: gold/card/relic/potion/key choices have their actual reward indices, including distinct multiple-gold entries. Skip/proceed and Singing Bowl are distinct choices.
+- `boss_relics`, `rest`, `treasure`, `card_select`: offered relics; eligible rest choices; chest metadata; or selection type/count/candidate cards and selected cards, respectively.
+
+Game actions include `preActionOffer`, captured before execution, so buying/removing an item cannot erase its name or price from the selected slide. Battle actions include their source card, target references, potion details, or card-selection task and selected identities. No action descriptor executes the action or recomputes a randomized offer.
